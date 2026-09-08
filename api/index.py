@@ -1,3 +1,9 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from signal_engine.generator import SignalGenerator
+# بقیه کدها...
 from signal_engine.generator import SignalGenerator
 from telegram.bot import TelegramBot
 from api.redis_client import redis_client
