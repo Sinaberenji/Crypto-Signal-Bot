@@ -105,7 +105,7 @@ class SignalGenerator:
                 return short_signal
 
             rsi_val = entry_indicators.rsi[-1]
-            rsi_str = f"{rsi_val:.1f}" if not np.isnan(rsi_val) else "NaN"
+            rsi_str = f"{rsi_val:.1f}" if not np.isnan(rsi_val)={ "NaN"
             print(
                 f"{symbol}: no signal "
                 f"(trend={trend_structure.trend}, rsi={rsi_str}, "
@@ -230,23 +230,15 @@ class SignalGenerator:
         score += 2
 
         rsi = indicators.rsi[-1]
-        rsi_prev = indicators: float,
-        atr: float,
-        current_volume: float,
-        trend_structure: MarketStructure,
-        entry_structure: MarketStructure,
-        indicators: Indicators
-    ) -> Optional[TradeSignal]:
-        reasons = []
-        score = 0
-
-        if trend_structure.trend != "bearish":
+        rsi_prev = indicators.rsi[-2] if len(indicators.rsi) > 1 else rsi
+        if np.isnan(rsi):
             return None
-        reasons.append("روند ۴h نزولی (EMA 50 < EMA 200)")
-        score += 2
-
-        rsi = indicators.rsi[-1]
-        rsi_prev = indicators score += 1
+        if rsi > settings.RSI_OVERBOUGHT and rsi < rsi_prev:
+            reasons.append(f"RSI از اشباع خرید برگشت ({rsi:.1f})")
+            score += 3
+        elif rsi > 55 and rsi < rsi_prev:
+            reasons.append(f"RSI در حال برگشت از بالا ({rsi:.1f})")
+            score += 1
         else:
             return None
 
@@ -270,7 +262,7 @@ class SignalGenerator:
             score += 2
 
         vol_sma = indicators.volume_sma[-1]
-        if not np.isnan(vol_sma) and current_volume > vol_sma * settings.VOLUME_MULTIPLIER:
+        if not            reasons(vol_sma) and current_volume > vol_sma * settings.VOLUME_MULTIPLIER:
             reasons.append(f"حجم بالاتر از میانگین ({current_volume/vol_sma:.1f}x)")
             score += 1
 
