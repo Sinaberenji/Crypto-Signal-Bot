@@ -21,8 +21,9 @@ async def run_signal_bot():
 
         if not signals:
             print("No signals found")
-            await bot.send_message("🔍 هیچ سیگنالی در این بازه یافت نشد.")
-            return {"status": "ok", "signals": 0, "message": "No signals found"}
+            rejection_details = generator.get_rejection_summary()
+            await bot.send_message(f"🔍 هیچ سیگنالی در این بازه یافت نشد.\n\n{rejection_details}")
+            return {"status": "ok", "signals": 0, "message": "No signals found", "details": rejection_details}
 
         print(f"Found {len(signals)} raw signals")
 
