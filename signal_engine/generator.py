@@ -55,13 +55,18 @@ class SignalGenerator:
 
     async def analyze_symbol(self, symbol: str) -> Optional[TradeSignal]:
         try:
+            print(f"[{symbol}] Fetching trend candles ({settings.TIMEFRAME_TREND})...")
             trend_candles = await self.client.get_klines(symbol, settings.TIMEFRAME_TREND, limit=250)
+            print(f"[{symbol}] Fetching entry candles ({settings.TIMEFRAME_ENTRY})...")
             entry_candles = await self.client.get_klines(symbol, settings.TIMEFRAME_ENTRY, limit=250)
+            
+            print(f"[{symbol}] Trend candles: {len(trend_candles)}, Entry candles: {len(entry_candles)}")
+            
             if len(trend_candles) < 210 or len(entry_candles) < 210:
                 self.rejections.append(RejectionReason(
                     symbol=symbol,
-                    long_rejected="داده ناکافی",
-                    short_rejected="داده ناکافی",
+                    long_rejected=f"داده ناکافی (trend:{len(trend_candles)}, entry:{len(entry_candles)})",
+                    short_rejected=f"داده ناکافی (trend:{len(trend_candles)}, entry:{len(entry_candles)})",
                     trend="unknown",
                     rsi=0,
                     macd_cross="unknown"
@@ -70,6 +75,8 @@ class SignalGenerator:
 
             trend_candles_parsed = [self.client.parse_kline(c) for c in trend_candles]
             entry_candles_parsed = [self.client.parse_kline(c) for c in entry_candles]
+            
+            print(f"[{symbol}] Last price: {entry_candles_parsed[-1]['close']}, Last volume: {entry_candles_parsed[-1]['volume']}")
 
             trend_indicators = compute_all_indicators(
                 trend_candles_parsed,
@@ -106,6 +113,10 @@ class SignalGenerator:
             macd_hist_prev = entry_indicators.macd_hist[-2] if len(entry_indicators.macd_hist) > 1 else macd_hist
             macd_cross = "bullish" if macd > macd_signal and macd_hist > macd_hist_prev else \
                         "bearish" if macd < macd_signal and macd_hist < macd_hist_prev else "none"
+            
+            print(f"[{symbol}] Trend: {trend_structure.trend} ({trend_structure.trend_strength:.1f}), RSI: {rsi:.1f}, MACD: {macd_cross} ({macd:.4f}/{macd_signal:.4f}), ATR: {atr:.4f}")
+            print(f"[{symbol}] Nearest Support: {entry_structure.nearest_support}, Resistance: {entry_structure.nearest_resistance}")
+            print(f"[{symbol}] Volume: {current_volume:.2f}, Vol SMA: {entry_indicators.volume_sma[-1]:.2f}")
 
             long_signal = self._check_long_conditions(
                 symbol, current_price, atr, current_volume, trend_structure, entry_structure, entry_indicators
