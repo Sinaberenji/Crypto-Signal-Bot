@@ -9,7 +9,6 @@ class CoinexClient:
         self.base_url = settings.COINEX_BASE_URL
         self.client = httpx.AsyncClient(timeout=30.0)
 
-    # Different endpoint paths to try (Coinex V1/V2 variations)
     KLINE_ENDPOINTS = [
         "/v2/market/kline",
         "/v2/market/klines",
@@ -59,24 +58,14 @@ class CoinexClient:
         for endpoint in endpoints:
             url = f"{self.base_url}{endpoint}"
             try:
-                print(f"[Coinex] Trying endpoint: {url} with params: {params}")
                 response = await self.client.get(url, params=params)
-                print(f"[Coinex] Status: {response.status_code}, Body: {response.text[:300]}")
-                
                 if response.status_code == 200:
                     data = response.json()
-                    print(f"[Coinex] Response code: {data.get('code')}, msg: {data.get('message')}")
                     if data.get("code") == 0:
                         return data
-                    else:
-                        print(f"[Coinex] API error code: {data.get('code')}: {data.get('message')}")
                 elif response.status_code == 404:
-                    print(f"[Coinex] 404 Not Found for {endpoint}")
                     continue
-                else:
-                    print(f"[Coinex] HTTP {response.status_code}: {response.text[:200]}")
-            except Exception as e:
-                print(f"[Coinex] Exception on {endpoint}: {e}")
+            except Exception:
                 continue
         return None
 
@@ -95,7 +84,6 @@ class CoinexClient:
                 if data:
                     result = data.get("data", [])
                     if result:
-                        print(f"[Coinex] SUCCESS: market={mkt}, timeframe={tf}, endpoint worked, count={len(result)}")
                         return result
         
         raise Exception(f"Coinex API: all format attempts failed for {market} {timeframe}")
