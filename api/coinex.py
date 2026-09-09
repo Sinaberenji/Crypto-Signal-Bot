@@ -9,7 +9,28 @@ class CoinexClient:
         self.base_url = settings.COINEX_BASE_URL
         self.client = httpx.AsyncClient(timeout=30.0)
 
-    # Multiple timeframe format attempts for Coinex V2 API
+    # Different endpoint paths to try (Coinex V1/V2 variations)
+    KLINE_ENDPOINTS = [
+        "/v2/market/kline",
+        "/v2/market/klines",
+        "/market/kline",
+        "/market/klines",
+        "/api/v2/market/kline",
+        "/api/v2/market/klines",
+    ]
+
+    TICKER_ENDPOINTS = [
+        "/v2/market/ticker",
+        "/market/ticker",
+        "/api/v2/market/ticker",
+    ]
+
+    INFO_ENDPOINTS = [
+        "/v2/market/info",
+        "/market/info",
+        "/api/v2/market/info",
+    ]
+
     TIMEFRAME_ALIASES = {
         "1min": ["1min", "1m"],
         "3min": ["3min", "3m"],
@@ -25,7 +46,6 @@ class CoinexClient:
         "1week": ["1week", "1w", "10080min"],
     }
 
-    # Market format attempts
     def _get_market_variants(self, market: str) -> List[str]:
         variants = [market]
         if market.endswith("USDT"):
@@ -35,60 +55,64 @@ class CoinexClient:
             variants.append(market.lower().replace("usdt", "-usdt"))
         return variants
 
+    async def _try_endpoints(self, endpoints: List[str], params: Dict) -> Optional[Dict]:
+        for endpoint in endpoints:
+            url = f"{self.base_url}{endpoint}"
+            try:
+                print(f"[Coinex] Trying endpoint: {url} with params: {params}")
+                response = await self.client.get(url, params=params)
+                print(f"[Coinex] Status: {response.status_code}, Body: {response.text[:300]}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    print(f"[Coinex] Response code: {data.get('code')}, msg: {data.get('message')}")
+                    if data.get("code") == 0:
+                        return data
+                    else:
+                        print(f"[Coinex] API error code: {data.get('code')}: {data.get('message')}")
+                elif response.status_code == 404:
+                    print(f"[Coinex] 404 Not Found for {endpoint}")
+                    continue
+                else:
+                    print(f"[Coinex] HTTP {response.status_code}: {response.text[:200]}")
+            except Exception as e:
+                print(f"[Coinex] Exception on {endpoint}: {e}")
+                continue
+        return None
+
     async def get_klines(
         self,
         market: str,
         timeframe: str,
         limit: int = 200
     ) -> List[Dict[str, Any]]:
-        url = f"{self.base_url}/market/kline"
-        
-        # Try multiple timeframe formats
         timeframe_variants = self.TIMEFRAME_ALIASES.get(timeframe, [timeframe])
         
         for tf in timeframe_variants:
             for mkt in self._get_market_variants(market):
                 params = {"market": mkt, "type": tf, "limit": limit}
-                try:
-                    response = await self.client.get(url, params=params)
-                    if response.status_code == 200:
-                        data = response.json()
-                        if data.get("code") == 0:
-                            result = data.get("data", [])
-                            if result:
-                                print(f"Coinex OK: market={mkt}, timeframe={tf}, count={len(result)}")
-                                return result
-                    elif response.status_code == 404:
-                        continue
-                except Exception as e:
-                    print(f"Coinex try failed: market={mkt}, timeframe={tf}, error={e}")
-                    continue
+                data = await self._try_endpoints(self.KLINE_ENDPOINTS, params)
+                if data:
+                    result = data.get("data", [])
+                    if result:
+                        print(f"[Coinex] SUCCESS: market={mkt}, timeframe={tf}, endpoint worked, count={len(result)}")
+                        return result
         
-        # If all failed, raise last error
         raise Exception(f"Coinex API: all format attempts failed for {market} {timeframe}")
 
     async def get_ticker(self, market: str) -> Dict[str, Any]:
-        url = f"{self.base_url}/market/ticker"
         for mkt in self._get_market_variants(market):
             params = {"market": mkt}
-            try:
-                response = await self.client.get(url, params=params)
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get("code") == 0:
-                        return data.get("data", {})
-            except Exception:
-                continue
+            data = await self._try_endpoints(self.TICKER_ENDPOINTS, params)
+            if data:
+                return data.get("data", {})
         raise Exception(f"Coinex ticker: all market formats failed for {market}")
 
     async def get_market_list(self) -> List[Dict[str, Any]]:
-        url = f"{self.base_url}/market/info"
-        response = await self.client.get(url)
-        response.raise_for_status()
-        data = response.json()
-        if data.get("code") != 0:
-            raise Exception(f"Coinex API error: {data.get('message')}")
-        return data.get("data", [])
+        data = await self._try_endpoints(self.INFO_ENDPOINTS, {})
+        if data:
+            return data.get("data", [])
+        raise Exception(f"Coinex market info: all endpoints failed")
 
     async def close(self):
         await self.client.aclose()

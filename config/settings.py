@@ -5,7 +5,7 @@ from typing import List
 
 @dataclass
 class Settings:
-    COINEX_BASE_URL: str = "https://api.coinex.com/v2"
+    COINEX_BASE_URL: str = "https://api.coinex.com"
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
     UPSTASH_REDIS_REST_URL: str = os.getenv("UPSTASH_REDIS_REST_URL", "")
