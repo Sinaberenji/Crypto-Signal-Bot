@@ -387,16 +387,23 @@ class SignalGenerator:
         if not self.rejections:
             return "هیچ نماد تحلیل نشده"
         
-        lines = ["📊 **تحلیل نمادها (بدون سیگنال):**\n"]
+        lines = ["📊 **تحلیل نمادها (بدون سیگنال):**"]
         for r in self.rejections:
-            lines.append(f"**{r.symbol}**")
-            lines.append(f"  📈 روند ۴h: {r.trend}")
-            lines.append(f"  📊 RSI: {r.rsi:.1f} | MACD: {r.macd_cross}")
-            if r.long_rejected != "داده ناکافی":
-                lines.append(f"  ❌ LAG رد: {r.long_rejected}")
-            if r.short_rejected != "داده ناکافی":
-                lines.append(f"  ❌ SHORT رد: {r.short_rejected}")
-            lines.append("")
+            if r.long_rejected == "داده ناکافی" and r.short_rejected == "داده ناکافی":
+                lines.append(f"• {r.symbol}: {r.long_rejected}")
+            else:
+                reasons = []
+                if "روند" in r.long_rejected:
+                    reasons.append(f"روند:{r.trend}")
+                if "RSI" in r.long_rejected:
+                    reasons.append(f"RSI:{r.rsi:.0f}")
+                if "MACD" in r.long_rejected:
+                    reasons.append(f"MACD:{r.macd_cross}")
+                if "حمایت" in r.long_rejected or "مقاومت" in r.long_rejected:
+                    reasons.append("S/R:خیر")
+                if "حجم" in r.long_rejected:
+                    reasons.append("Vol:کم")
+                lines.append(f"• {r.symbol}: {' | '.join(reasons) if reasons else 'شرایط کامل نشد'}")
         return "\n".join(lines)
 
     async def close(self):

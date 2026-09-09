@@ -22,6 +22,11 @@ class CoinexClient:
             "limit": limit
         }
         response = await self.client.get(url, params=params)
+        if response.status_code == 404:
+            # Try alternative market format (BTC-USDT)
+            alt_market = market.replace("USDT", "-USDT") if market.endswith("USDT") else market
+            params["market"] = alt_market
+            response = await self.client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
         if data.get("code") != 0:
@@ -32,6 +37,10 @@ class CoinexClient:
         url = f"{self.base_url}/market/ticker"
         params = {"market": market}
         response = await self.client.get(url, params=params)
+        if response.status_code == 404:
+            alt_market = market.replace("USDT", "-USDT") if market.endswith("USDT") else market
+            params["market"] = alt_market
+            response = await self.client.get(url, params=params)
         response.raise_for_status()
         data = response.json()
         if data.get("code") != 0:

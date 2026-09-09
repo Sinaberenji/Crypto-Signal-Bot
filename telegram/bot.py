@@ -17,6 +17,10 @@ class TelegramBot:
             print("Telegram credentials not configured")
             return False
 
+        # Telegram limit is 4096 chars
+        if len(text) > 4000:
+            text = text[:3950] + "\n\n... <i>(truncated)</i>"
+
         url = f"{self.base_url}/sendMessage"
         payload = {
             "chat_id": self.chat_id,
@@ -30,6 +34,15 @@ class TelegramBot:
             return response.json().get("ok", False)
         except Exception as e:
             print(f"Telegram send error: {e}")
+            # Try without parse_mode if HTML fails
+            if parse_mode == "HTML":
+                payload.pop("parse_mode", None)
+                try:
+                    response = await self.client.post(url, json=payload)
+                    response.raise_for_status()
+                    return response.json().get("ok", False)
+                except Exception as e2:
+                    print(f"Telegram send error (no parse_mode): {e2}")
             return False
 
     async def send_signal(self, signal: TradeSignal) -> bool:
