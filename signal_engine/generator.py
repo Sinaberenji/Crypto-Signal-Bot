@@ -105,7 +105,7 @@ class SignalGenerator:
             macd_signal = entry_indicators.macd_signal[-1]
             macd_hist = entry_indicators.macd_hist[-1]
             macd_hist_prev = entry_indicators.macd_hist[-2] if len(entry_indicators.macd_hist) > 1 else macd_hist
-macd_cross = "bullish" if macd > macd_signal and macd_hist > macd_hist_prev else \
+            macd_cross = "bullish" if macd > macd_signal and macd_hist > macd_hist_prev else \
                         "bearish" if macd < macd_signal and macd_hist < macd_hist_prev else "none"
             
             long_signal = self._check_long_conditions(
